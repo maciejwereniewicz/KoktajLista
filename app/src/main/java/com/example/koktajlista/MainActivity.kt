@@ -1,20 +1,24 @@
 package com.example.koktajlista
 
 import android.annotation.SuppressLint
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import com.example.koktajlista.ui.theme.KoktajListaTheme
-import com.yourdomain.yourapp.api.ApiClient
 import com.yourdomain.yourapp.api.CocktailApiHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +34,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
 
 @Composable
 fun MainScreen() {
@@ -67,15 +72,32 @@ fun CategoryList(onCategoryClick: (String) -> Unit) {
     }
 }
 
+@SuppressLint("CoroutineCreationDuringComposition")
 @Composable
 fun ItemList(category: String, onBackClick: () -> Unit) {
-    val items = listOf("Item 1 in $category", "Item 2 in $category", "Item 3 in $category")
+    var items by remember { mutableStateOf<List<DrinkStruct>>(emptyList()) }
+    CoroutineScope(Dispatchers.Main).launch {
+        items = CocktailApiHandler().getDrinksByType("c",category)
+    }
 
     Scaffold(topBar = { Text("$category Items")  }) { paddingValues ->
         LazyColumn(contentPadding = paddingValues, modifier = Modifier.padding(16.dp)) {
-            items(items) { item ->
-                Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                    Text(text = item, modifier = Modifier.padding(16.dp))
+            items(items) { drink ->
+                Card(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(text = drink.drinkName)
+                        if (drink.drinkImage.isNotEmpty()) {
+                            val bitmap = BitmapFactory.decodeByteArray(drink.drinkImage, 0, drink.drinkImage.size)
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = "Image of ${drink.drinkName}",
+                                modifier = Modifier.height(200.dp).fillMaxWidth(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
                 }
             }
         }
