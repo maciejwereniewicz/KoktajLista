@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.asImageBitmap
@@ -37,16 +38,14 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainScreen() {
-    var selectedCategory by remember { mutableStateOf<String?>(null) }
+    var selectedCategory by rememberSaveable { mutableStateOf<String?>(null) }
 
     if (selectedCategory == null) {
         CategoryList { category ->
             selectedCategory = category
         }
     } else {
-        ItemList(selectedCategory!!) {
-            selectedCategory = null
-        }
+        ItemList(selectedCategory!!)
     }
 }
 
@@ -73,7 +72,7 @@ fun CategoryList(onCategoryClick: (String) -> Unit) {
 
 @SuppressLint("CoroutineCreationDuringComposition")
 @Composable
-fun ItemList(category: String, onBackClick: () -> Unit) {
+fun ItemList(category: String) {
     var items by remember { mutableStateOf<List<DrinkStruct>>(emptyList()) }
     CoroutineScope(Dispatchers.Main).launch {
         items = CocktailApiHandler().getDrinksByType("c",category)
