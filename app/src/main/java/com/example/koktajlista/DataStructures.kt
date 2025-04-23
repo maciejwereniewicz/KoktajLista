@@ -4,13 +4,13 @@ data class DrinkStruct(
     val drinkName: String,
     val drinkImage: ByteArray,
     val drinkId: Int,
-    val strImageSource: String,
-    val strImageAttribution: String,
+    val strImageSource: String?,
+    val strImageAttribution: String?,
     val strCreativeCommonsConfirmed: String,
     val dateModified: String,
     val ingredients: List<String>,
     val measure: List<String>,
-    val instructions: Map<String, String>
+    val instructions: Map<String, String?>
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -89,13 +89,13 @@ data class Drink(
     val strIBA: String,
     val strAlcoholic: String,
     val strGlass: String,
-    val strInstructions: String,
-    val strInstructionsES: String,
-    val strInstructionsDE: String,
-    val strInstructionsFR: String,
-    val strInstructionsIT: String,
-    val strInstructionsZHHANS: String,
-    val strInstructionsZHHANT: String,
+    val strInstructions: String?,
+    val strInstructionsES: String?,
+    val strInstructionsDE: String?,
+    val strInstructionsFR: String?,
+    val strInstructionsIT: String?,
+    val strInstructionsZHHANS: String?,
+    val strInstructionsZHHANT: String?,
     val strDrinkThumb: String,
     val strIngredient1: String,
     val strIngredient2: String,

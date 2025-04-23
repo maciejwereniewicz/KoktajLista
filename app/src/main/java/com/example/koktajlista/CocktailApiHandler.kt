@@ -1,7 +1,5 @@
 package com.yourdomain.yourapp.api
-
 import com.example.koktajlista.ApiClient
-import com.example.koktajlista.Drink
 import com.example.koktajlista.DrinkStruct
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -101,13 +99,13 @@ class CocktailApiHandler {
                         ).filterValues { !it.isNullOrBlank() }
 
                         return@withContext DrinkStruct(
-                            drinkName = drink.strDrink ?: "",
+                            drinkName = drink.strDrink,
                             drinkImage = imageBytes,
                             drinkId = drink.idDrink,
-                            strImageSource = drink.strImageSource ?: "",
-                            strImageAttribution = drink.strImageAttribution ?: "",
-                            strCreativeCommonsConfirmed = drink.strCreativeCommonsConfirmed ?: "",
-                            dateModified = drink.dateModified ?: "",
+                            strImageSource = drink.strImageSource,
+                            strImageAttribution = drink.strImageAttribution,
+                            strCreativeCommonsConfirmed = drink.strCreativeCommonsConfirmed,
+                            dateModified = drink.dateModified,
                             ingredients = ingredients,
                             measure = measures,
                             instructions = instructions
