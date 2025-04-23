@@ -42,7 +42,6 @@ data class CategoryResponse(
 )
 
 data class Glass(
-
     val strGlass: String
 )
 
