@@ -3,7 +3,14 @@ package com.example.koktajlista
 data class DrinkStruct(
     val drinkName: String,
     val drinkImage: ByteArray,
-    val drinkId: Int
+    val drinkId: Int,
+    val strImageSource: String,
+    val strImageAttribution: String,
+    val strCreativeCommonsConfirmed: String,
+    val dateModified: String,
+    val ingredients: List<String>,
+    val measure: List<String>,
+    val instructions: Map<String, String>
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -66,6 +73,10 @@ data class ShortDrink(
     val strDrink: String,
     val strDrinkThumb: String,
     val idDrink: Int
+)
+
+data class LongDrinkResponse(
+    val drinks: List<Drink>
 )
 
 data class Drink(

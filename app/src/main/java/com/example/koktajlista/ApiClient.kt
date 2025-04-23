@@ -5,6 +5,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Path
+import retrofit2.http.Query
 import retrofit2.http.QueryMap
 
 interface CocktailApi {
@@ -24,8 +25,8 @@ interface CocktailApi {
     @GET("filter.php")
     fun fetchDrinksByType(@QueryMap options: Map<String, String>): Call<DrinkResponse>
 
-    @GET("lookup.php?i={id}")
-    fun fetchById(@Path("id") id: Int): Call<Drink>
+    @GET("lookup.php")
+    fun fetchById(@Query("i") id: Int): Call<LongDrinkResponse>
 }
 
 
