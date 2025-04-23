@@ -49,11 +49,13 @@ fun MainScreen() {
                 currentScreen = Screen.ItemList(category)
             }
         }
+
         is Screen.ItemList -> {
             ItemList(screen.category) { drink ->
                 currentScreen = Screen.DrinkView(drink.drinkId)
             }
         }
+
         is Screen.DrinkView -> {
             DrinkView(screen.drinkId)
         }
@@ -70,10 +72,11 @@ fun CategoryList(onCategoryClick: (String) -> Unit) {
     Scaffold(topBar = { Text("Categories") }) { paddingValues ->
         LazyColumn(contentPadding = paddingValues, modifier = Modifier.padding(16.dp)) {
             items(categories) { category ->
-                Card(modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .clickable { onCategoryClick(category) }) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .clickable { onCategoryClick(category) }) {
                     Text(text = category, modifier = Modifier.padding(16.dp))
                 }
             }
@@ -86,21 +89,26 @@ fun CategoryList(onCategoryClick: (String) -> Unit) {
 fun ItemList(category: String, onDrinkClick: (DrinkStruct) -> Unit) {
     var items by remember { mutableStateOf<List<DrinkStruct>>(emptyList()) }
     CoroutineScope(Dispatchers.Main).launch {
-        items = CocktailApiHandler().getDrinksByType("c",category)
+        items = CocktailApiHandler().getDrinksByType("c", category)
     }
 
-    Scaffold(topBar = { Text("$category Items")  }) { paddingValues ->
+    Scaffold(topBar = { Text("$category Items") }) { paddingValues ->
         LazyColumn(contentPadding = paddingValues, modifier = Modifier.padding(16.dp)) {
             items(items) { drink ->
-                Card(modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .clickable { onDrinkClick(drink) }
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .clickable { onDrinkClick(drink) }
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(text = drink.drinkName)
                         if (drink.drinkImage.isNotEmpty()) {
-                            val bitmap = BitmapFactory.decodeByteArray(drink.drinkImage, 0, drink.drinkImage.size)
+                            val bitmap = BitmapFactory.decodeByteArray(
+                                drink.drinkImage,
+                                0,
+                                drink.drinkImage.size
+                            )
                             Image(
                                 bitmap = bitmap.asImageBitmap(),
                                 contentDescription = "Image of ${drink.drinkName}",
@@ -126,7 +134,12 @@ fun DrinkView(drinkId: Int) {
     }
 
     drink?.let { d ->
-        Scaffold(topBar = { Text(text = d.drinkName, style = Typography.headlineLarge) }) { paddingValues ->
+        Scaffold(topBar = {
+            Text(
+                text = d.drinkName,
+                style = Typography.headlineLarge
+            )
+        }) { paddingValues ->
             Column(
                 modifier = Modifier
                     .padding(paddingValues)
