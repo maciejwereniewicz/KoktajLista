@@ -46,7 +46,7 @@ data class Glass(
 )
 
 data class GlassResponse(
-    val drinks: List<Category>
+    val drinks: List<Glass>
 )
 
 data class Ingredient(
@@ -54,7 +54,7 @@ data class Ingredient(
 )
 
 data class IngredientResponse(
-    val drinks: List<Category>
+    val drinks: List<Ingredient>
 )
 
 data class Alcoholic(
@@ -62,7 +62,7 @@ data class Alcoholic(
 )
 
 data class AlcoholicResponse(
-    val drinks: List<Category>
+    val drinks: List<Alcoholic>
 )
 
 data class DrinkResponse(

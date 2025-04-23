@@ -6,6 +6,7 @@ import kotlinx.coroutines.withContext
 import java.net.URL
 
 class CocktailApiHandler {
+
     suspend fun getCategories(): List<String> {
         return withContext(Dispatchers.IO) {
             val call = ApiClient.cocktailApi.fetchCategories()
