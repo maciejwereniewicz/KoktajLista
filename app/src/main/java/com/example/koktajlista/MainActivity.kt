@@ -1,105 +1,109 @@
 package com.example.koktajlista
 
-import android.annotation.SuppressLint
+import android.content.Context
 import android.graphics.BitmapFactory
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import com.example.koktajlista.MainActivity.Companion.currentTime
-import com.example.koktajlista.MainActivity.Companion.isRunning
-import com.example.koktajlista.MainActivity.Companion.savedMillis
-import com.example.koktajlista.MainActivity.Companion.showTimer
-import com.example.koktajlista.MainActivity.Companion.startTime
+import androidx.compose.ui.unit.dp
 import com.example.koktajlista.ui.theme.KoktajListaTheme
-import com.example.koktajlista.ui.theme.Typography
 import com.yourdomain.yourapp.api.CocktailApiHandler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import showTimer
+import androidx.core.content.edit
 
 class MainActivity : ComponentActivity() {
-    companion object {
-        var showTimer: Boolean = false;
-        var isRunning: Boolean = false;
-        var startTime: Long = 0;
-        var currentTime: Long = 0;
-        var savedMillis: Long = 0;
-    }
+    private var savedCategory: String? = null
+    private var savedDrinkId: Int? = null
+
+    private var timeR: Long = 0L
+    private var isRunningR: Boolean = false
+    private var timeStartR: Long = 0L
+    private var storedTimeR: Long = 0L
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val sharedPreferences = getSharedPreferences("CocktailPrefs", Context.MODE_PRIVATE)
+        savedCategory = sharedPreferences.getString("lastCategory", null)
+        val drinkId = sharedPreferences.getInt("lastDrinkId", -1)
+        savedDrinkId = if (drinkId != -1) drinkId else null
+
+        timeStartR = sharedPreferences.getLong("timeStartR", 0L)
+        isRunningR = sharedPreferences.getBoolean("isRunningR", false)
+        timeR = sharedPreferences.getLong("timeR", 0L)
+        storedTimeR = sharedPreferences.getLong("storedTimeR", 0L)
         enableEdgeToEdge()
         setContent {
             KoktajListaTheme {
-                MainScreen()
+                MainScreen(savedCategory, savedDrinkId, timeR, isRunningR, timeStartR, storedTimeR)
             }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        val sharedPreferences = getSharedPreferences("CocktailPrefs", MODE_PRIVATE)
+        sharedPreferences.edit() {
+            savedCategory?.let { putString("lastCategory", it) }
+            savedDrinkId?.let { putInt("lastDrinkId", it) }
+            timeStartR?.let { putLong("timeStartR", it) }
+            isRunningR?.let { putBoolean("isRunningR", it) }
+            timeR?.let { putLong("timeR", it) }
+            storedTimeR?.let { putLong("storedTimeR", it) }
         }
     }
 }
 
 @Composable
-fun MainScreen() {
+fun MainScreen(initialCategory: String?, initialDrinkId: Int?, timeR: Long, isRunningR: Boolean, timeStartR: Long, storedTimeR: Long) {
+    val context = LocalContext.current
     var currentScreen by remember { mutableStateOf<Screen>(Screen.CategoryList) }
-    var category by remember { mutableStateOf<String?>(null)}
-    var drink by remember { mutableStateOf<Int?>(null)}
-
-    BackHandler {
-        currentScreen = when (val screen = currentScreen) {
-            is Screen.ItemList -> {
-                Screen.CategoryList;
-            }
-
-            is Screen.DrinkView -> {
-                Screen.ItemList(category!!)
-            }
-
-            Screen.CategoryList -> TODO()
+    var category by remember { mutableStateOf(initialCategory) }
+    var drink by remember { mutableStateOf(initialDrinkId) }
+    LaunchedEffect(Unit) {
+        if (drink != null) {
+            currentScreen = Screen.DrinkView(drink!!)
+        } else if (category != null) {
+            currentScreen = Screen.ItemList(category!!)
         }
     }
-    ModalNavigationDrawer(
-        drawerContent = {
-            showTimer()
+
+    BackHandler {
+        currentScreen = when (currentScreen) {
+            is Screen.ItemList -> Screen.CategoryList
+            is Screen.DrinkView -> Screen.ItemList(category ?: "")
+            Screen.CategoryList -> Screen.CategoryList
         }
-    ) {
+    }
+
+    ModalNavigationDrawer(drawerContent = { showTimer(timeR, isRunningR, timeStartR, storedTimeR) }) {
         when (val screen = currentScreen) {
             is Screen.CategoryList -> {
                 CategoryList { c ->
                     category = c
-                    currentScreen = Screen.ItemList(category!!)
+                    currentScreen = Screen.ItemList(c)
                 }
             }
 
             is Screen.ItemList -> {
                 ItemList(screen.category) { d ->
                     drink = d.drinkId
-                    currentScreen = Screen.DrinkView(drink!!)
+                    currentScreen = Screen.DrinkView(d.drinkId)
                 }
             }
 
@@ -111,19 +115,21 @@ fun MainScreen() {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@SuppressLint("CoroutineCreationDuringComposition")
 @Composable
 fun CategoryList(onCategoryClick: (String) -> Unit) {
     var categories by remember { mutableStateOf<List<String>>(emptyList()) }
-    CoroutineScope(Dispatchers.Main).launch {
-        categories = CocktailApiHandler().getCategories()
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(Unit) {
+        scope.launch {
+            categories = CocktailApiHandler().getCategories()
+        }
     }
     Scaffold(
         topBar = {
-        TopAppBar(
-            title = { Text("Categories") },
-        )
-    }) { paddingValues ->
+            TopAppBar(
+                title = { Text("Categories") },
+            )
+        }) { paddingValues ->
         LazyColumn(contentPadding = paddingValues, modifier = Modifier.padding(16.dp)) {
             items(categories) { category ->
                 Card(
@@ -139,19 +145,20 @@ fun CategoryList(onCategoryClick: (String) -> Unit) {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@SuppressLint("CoroutineCreationDuringComposition")
 @Composable
 fun ItemList(category: String, onDrinkClick: (DrinkStruct) -> Unit) {
     var items by remember { mutableStateOf<List<DrinkStruct>>(emptyList()) }
-    CoroutineScope(Dispatchers.Main).launch {
-        items = CocktailApiHandler().getDrinksByType("c", category)
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(category) {
+        scope.launch {
+            items = CocktailApiHandler().getDrinksByType("c", category)
+        }
     }
     Scaffold(topBar = {
-            TopAppBar(
-                title = { Text("$category") },
-            )
-        }
-    ) { paddingValues ->
+        TopAppBar(
+            title = { Text(category) },
+        )
+    }) { paddingValues ->
         LazyColumn(contentPadding = paddingValues, modifier = Modifier.padding(16.dp)) {
             items(items) { drink ->
                 Card(
@@ -162,6 +169,7 @@ fun ItemList(category: String, onDrinkClick: (DrinkStruct) -> Unit) {
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(text = drink.drinkName)
+
                         if (drink.drinkImage.isNotEmpty()) {
                             val bitmap = BitmapFactory.decodeByteArray(
                                 drink.drinkImage,
@@ -185,13 +193,15 @@ fun ItemList(category: String, onDrinkClick: (DrinkStruct) -> Unit) {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@SuppressLint("CoroutineCreationDuringComposition")
 @Composable
 fun DrinkView(drinkId: Int) {
     var drink by remember { mutableStateOf<DrinkStruct?>(null) }
     var language by remember { mutableStateOf("EN") }
-    CoroutineScope(Dispatchers.Main).launch {
-        drink = CocktailApiHandler().getDrinkById(drinkId)
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(drinkId) {
+        scope.launch {
+            drink = CocktailApiHandler().getDrinkById(drinkId)
+        }
     }
 
     drink?.let { d ->
@@ -201,8 +211,7 @@ fun DrinkView(drinkId: Int) {
                     title = { Text(d.drinkName) },
                 )
             }
-        )
-        { paddingValues ->
+        ) { paddingValues ->
             Column(
                 modifier = Modifier
                     .padding(paddingValues)
@@ -221,9 +230,9 @@ fun DrinkView(drinkId: Int) {
                         contentScale = ContentScale.Crop
                     )
                 }
-                Row() {
-                    d.instructions.forEach { it ->
-                        Button(onClick = {language = it.key}) {
+                Row {
+                    d.instructions.forEach {
+                        Button(onClick = { language = it.key }) {
                             Text(text = it.key)
                         }
                     }
@@ -231,85 +240,17 @@ fun DrinkView(drinkId: Int) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(text = "Instructions:", fontWeight = FontWeight.Bold)
                 Text(text = d.instructions[language] ?: "No instructions provided")
-
                 Spacer(modifier = Modifier.height(16.dp))
-                Row()
-                {
-                    Column()
-                    {
-                        Text(text = "Ingredients:", fontWeight = FontWeight.Bold)
-                        d.ingredients.forEach { ingredient ->
-                            Text(text = ingredient)
-                        }
+                Column {
+                    Text(text = "Ingredients:", fontWeight = FontWeight.Bold)
+                    d.ingredients.forEach { ingredient ->
+                        Text(text = ingredient)
                     }
                 }
-
             }
         }
     }
 }
-
-@Composable
-fun showTimer() {
-    var time by remember { mutableStateOf(0L) }
-    var isRunning by remember { mutableStateOf(false) }
-    var timeStart by remember { mutableStateOf( 0L )}
-    var storedTime by remember { mutableStateOf( 0L )}
-
-    LaunchedEffect(isRunning) {
-        while (isRunning) {
-            delay(1)
-            time = System.currentTimeMillis() - timeStart + storedTime
-        }
-    }
-
-    ModalDrawerSheet {
-        Text("Stopwatch", modifier = Modifier.padding(16.dp))
-        HorizontalDivider()
-
-        Text(
-            text = formatTime(time),
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            style = MaterialTheme.typography.headlineMedium
-        )
-
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            Button(onClick = {
-                isRunning = true
-                startTime = System.currentTimeMillis()
-            }) {
-                Text("Start")
-            }
-            Button(onClick = { isRunning = false }) {
-                Text("Stop")
-            }
-            Button(onClick = {
-                isRunning = false
-                storedTime = 0
-                startTime = 0
-                time = 0
-            }) {
-                Text("Reset")
-            }
-        }
-    }
-}
-
-@Composable
-fun formatTime(millis: Long): String {
-    val seconds = millis / 1000
-    val minutes = seconds / 60
-    val hours = minutes / 60
-    return "%02d:%02d:%02d:%03d".format(hours,minutes%60,seconds %60, millis%1000)
-}
-
 
 sealed class Screen {
     data object CategoryList : Screen()
