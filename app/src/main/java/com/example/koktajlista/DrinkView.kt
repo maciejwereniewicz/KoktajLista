@@ -1,8 +1,13 @@
 package com.example.koktajlista
 
 import android.graphics.BitmapFactory
+import android.media.Image
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,6 +20,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import java.io.File
+import com.google.accompanist.flowlayout.FlowRow
+import com.google.accompanist.flowlayout.FlowColumn
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,6 +72,7 @@ fun DrinkView(
     // Get configuration to detect orientation and screen width
     val configuration = LocalConfiguration.current
     val screenWidthDp = configuration.screenWidthDp
+    val screenHeightDp = configuration.screenHeightDp
 
     if (error != null && drink == null) {
         Scaffold(
@@ -100,6 +109,18 @@ fun DrinkView(
             screenWidthDp < 600 -> {
                 // Phone layout
                 DrinkViewPhone(
+                    drink = drink!!,
+                    language = language,
+                    onLanguageChange = { language = it },
+                    loadedFromCache = loadedFromCache,
+                    flagEmojiMap = flagEmojiMap,
+                    modifier = modifier
+                )
+            }
+
+            screenHeightDp < 800 -> {
+                // Phone layout
+                DrinkViewPhoneVertical(
                     drink = drink!!,
                     language = language,
                     onLanguageChange = { language = it },
@@ -203,7 +224,7 @@ fun DrinkViewPhone(
 }
 
 @Composable
-fun DrinkViewTablet(
+fun DrinkViewPhoneVertical(
     drink: DrinkStruct,
     language: String,
     onLanguageChange: (String) -> Unit,
@@ -241,7 +262,7 @@ fun DrinkViewTablet(
 
             if (drink.drinkImage.isNotEmpty()) {
                 val bitmap = BitmapFactory.decodeByteArray(drink.drinkImage, 0, drink.drinkImage.size)
-                androidx.compose.foundation.Image(
+                Image(
                     bitmap = bitmap.asImageBitmap(),
                     contentDescription = "Image of ${drink.drinkName}",
                     modifier = Modifier
@@ -252,13 +273,14 @@ fun DrinkViewTablet(
             }
         }
 
-        Spacer(modifier = Modifier.width(24.dp))
+        Spacer(modifier = Modifier.width(16.dp))
 
-        // Right pane: Instructions + Ingredients + language selector below ingredients
+        // Center pane: Instructions + ingredients
         Column(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight(),
+                .weight(2f)
+                .fillMaxHeight()
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.Start
         ) {
@@ -271,10 +293,19 @@ fun DrinkViewTablet(
             drink.ingredients.forEach { ingredient ->
                 Text(text = ingredient)
             }
+        }
 
-            Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.width(16.dp))
 
-            LanguageSelectorHorizontal(
+        // Right pane: Language flags
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top
+        ) {
+            LanguageSelectorVerticalWrapped(
                 availableLanguages = drink.instructions.keys.toList(),
                 selectedLanguage = language,
                 onLanguageChange = onLanguageChange,
@@ -283,6 +314,93 @@ fun DrinkViewTablet(
         }
     }
 }
+
+
+@Composable
+fun DrinkViewTablet(
+    drink: DrinkStruct,
+    language: String,
+    onLanguageChange: (String) -> Unit,
+    loadedFromCache: Boolean,
+    flagEmojiMap: Map<String, String>,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .padding(16.dp)
+            .fillMaxSize()
+    ) {
+        // Left pane: image + cache info + flags
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (loadedFromCache) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.secondaryContainer)
+                        .padding(8.dp)
+                ) {
+                    Text(
+                        text = "Załadowano dane z pamięci (offline)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            if (drink.drinkImage.isNotEmpty()) {
+                val bitmap = BitmapFactory.decodeByteArray(drink.drinkImage, 0, drink.drinkImage.size)
+                androidx.compose.foundation.Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = "Image of ${drink.drinkName}",
+                    modifier = Modifier
+                        .height(300.dp)
+                        .fillMaxWidth(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
+            // Flags below image
+            LanguageSelectorHorizontalWrapped(
+                availableLanguages = drink.instructions.keys.toList(),
+                selectedLanguage = language,
+                onLanguageChange = onLanguageChange,
+                flagEmojiMap = flagEmojiMap
+            )
+        }
+
+        Spacer(modifier = Modifier.width(24.dp))
+
+        // Center pane: scrollable content
+        Column(
+            modifier = Modifier
+                .weight(2f)
+                .fillMaxHeight()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.Start
+        ) {
+            Text(text = "Instructions:", fontWeight = FontWeight.Bold)
+            Text(text = drink.instructions[language] ?: "No instructions provided")
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(text = "Ingredients:", fontWeight = FontWeight.Bold)
+            drink.ingredients.forEach { ingredient ->
+                Text(text = ingredient)
+            }
+        }
+    }
+}
+
+
+
+
 
 // Vertical language selector for portrait phones (compact vertical buttons)
 @Composable
@@ -307,27 +425,73 @@ fun LanguageSelectorVertical(
     }
 }
 
-// Horizontal language selector for landscape/tablets (normal row of buttons)
 @Composable
-fun LanguageSelectorHorizontal(
+fun LanguageSelectorHorizontalWrapped(
     availableLanguages: List<String>,
     selectedLanguage: String,
     onLanguageChange: (String) -> Unit,
     flagEmojiMap: Map<String, String>
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        availableLanguages.forEach { langCode ->
+    FlowRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        mainAxisSpacing = 8.dp,
+        crossAxisSpacing = 8.dp
+    ) {
+        availableLanguages.forEach { lang ->
+            val isSelected = lang == selectedLanguage
+            val label = lang.uppercase()
+            val flag = flagEmojiMap[lang] ?: ""
+
             Button(
-                onClick = { onLanguageChange(langCode) },
-                colors = if (langCode == selectedLanguage)
-                    ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                else
-                    ButtonDefaults.buttonColors()
+                onClick = { onLanguageChange(lang) },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(50)
             ) {
-                Text(text = langCode)
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(text = flagEmojiMap[langCode] ?: "")
+                Text(text = "$label $flag")
             }
         }
     }
 }
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun LanguageSelectorVerticalWrapped(
+    availableLanguages: List<String>,
+    selectedLanguage: String,
+    onLanguageChange: (String) -> Unit,
+    flagEmojiMap: Map<String, String>
+) {
+    FlowColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        mainAxisSpacing = 8.dp,
+        crossAxisSpacing = 8.dp
+    ) {
+        availableLanguages.forEach { lang ->
+            val isSelected = lang == selectedLanguage
+            val label = lang.uppercase()
+            val flag = flagEmojiMap[lang] ?: ""
+
+            Button(
+                onClick = { onLanguageChange(lang) },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(50)
+            ) {
+                Text(text = "$label $flag")
+            }
+        }
+    }
+}
+
+

@@ -59,4 +59,6 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
     implementation(libs.gson)
+    implementation(libs.accompanist.flowlayout)
+
 }
