@@ -33,8 +33,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.koktajlista.CocktailApiHandler
-import com.example.koktajlista.DrinkStruct
 import kotlinx.coroutines.launch
 import java.io.File
 
