@@ -9,10 +9,12 @@ import com.example.koktajlista.ui.theme.KoktajListaTheme
 import androidx.core.content.edit
 
 sealed class Screen {
-    data object CategoryList : Screen()
+    object MainPage : Screen()
+    object CategoryList : Screen()
     data class ItemList(val category: String) : Screen()
     data class DrinkView(val drinkId: Int) : Screen()
 }
+
 
 class MainActivity : ComponentActivity() {
     var lastScreen: Screen? = null
@@ -27,8 +29,12 @@ class MainActivity : ComponentActivity() {
         lastScreen = when (screenType) {
             "ItemList" -> if (category != null) Screen.ItemList(category) else null
             "DrinkView" -> if (drinkId != -1) Screen.DrinkView(drinkId) else null
-            else -> Screen.CategoryList
+            "CategoryList" -> Screen.CategoryList
+            else -> Screen.MainPage // Default to main page instead of CategoryList
         }
+
+
+
 
         val timeStartR = sharedPreferences.getLong("timeStartR", 0L)
         val isRunningR = sharedPreferences.getBoolean("isRunningR", false)
@@ -39,7 +45,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             KoktajListaTheme {
                 MainScreen(
-                    initialScreen = lastScreen ?: Screen.CategoryList,
+                    initialScreen = lastScreen ?: Screen.MainPage,
                     timeR = timeR,
                     isRunningR = isRunningR,
                     timeStartR = timeStartR,
@@ -52,7 +58,8 @@ class MainActivity : ComponentActivity() {
                             "lastScreen", when (screen) {
                                 is Screen.ItemList -> "ItemList"
                                 is Screen.DrinkView -> "DrinkView"
-                                else -> "CategoryList"
+                                is Screen.CategoryList -> "CategoryList"
+                                else -> "WelcomePage"
                             }
                         )
                         (screen as? Screen.ItemList)?.let { putString("lastCategory", it.category) }
@@ -63,3 +70,5 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+

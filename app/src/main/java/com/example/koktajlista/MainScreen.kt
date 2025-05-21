@@ -4,15 +4,28 @@ import android.annotation.SuppressLint
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 
 @SuppressLint("ContextCastToActivity")
 @Composable
@@ -53,12 +66,16 @@ fun MainScreen(
         currentScreen = when (currentScreen) {
             is Screen.ItemList -> Screen.CategoryList
             is Screen.DrinkView -> category?.let { Screen.ItemList(it) } ?: Screen.CategoryList
-            Screen.CategoryList -> {
+            Screen.CategoryList -> Screen.MainPage
+            Screen.MainPage -> {
+                // Example: exit app on back from MainPage
                 activity?.finish()
                 return@BackHandler
             }
         }
     }
+
+
 
     ModalNavigationDrawer(
         drawerContent = {
@@ -89,6 +106,54 @@ fun MainScreen(
             }
 
             is Screen.DrinkView -> DrinkView(screen.drinkId)
+            Screen.MainPage -> WelcomeScreen(onContinue = {
+                currentScreen = Screen.CategoryList
+            })
+
+        }
+    }
+}
+
+@Composable
+fun WelcomeScreen(onContinue: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Witamy w KoktajLista!",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Aplikacja służy do przeglądania przepisów na różnorodne koktajle i napoje. " +
+                        "Możesz przejrzeć kategorie, wybrać interesujący Cię koktajl oraz zobaczyć szczegóły przepisu.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(horizontal = 8.dp),
+                lineHeight = MaterialTheme.typography.bodyLarge.lineHeight
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Button(
+                onClick = onContinue,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Text(text = "Zaczynamy! \uD83C\uDF7A")
+            }
         }
     }
 }

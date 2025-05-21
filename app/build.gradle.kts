@@ -60,5 +60,5 @@ dependencies {
     implementation(libs.retrofit.gson)
     implementation(libs.gson)
     implementation(libs.accompanist.flowlayout)
-
+    implementation(libs.compose.foundation)
 }

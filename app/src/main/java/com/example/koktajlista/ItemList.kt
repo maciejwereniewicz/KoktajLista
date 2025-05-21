@@ -1,6 +1,7 @@
 package com.example.koktajlista
 
 import android.graphics.BitmapFactory
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,8 +13,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -35,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import java.io.File
+import androidx.compose.ui.platform.LocalConfiguration
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +50,14 @@ fun ItemList(category: String, onDrinkClick: (DrinkStruct) -> Unit) {
     var error by remember { mutableStateOf<String?>(null) }
     var loadedFromCache by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    val configuration = LocalConfiguration.current
+    val screenWidthDp = configuration.screenWidthDp
+    val columnCount = when {
+        screenWidthDp < 600 -> 2
+        screenWidthDp < 840 -> 3
+        else -> 4
+    }
 
     LaunchedEffect(category) {
         scope.launch {
@@ -77,9 +91,10 @@ fun ItemList(category: String, onDrinkClick: (DrinkStruct) -> Unit) {
     ) { paddingValues ->
         when {
             error != null && items.isNullOrEmpty() -> {
-                Box(modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(text = error ?: "Nieznany błąd")
@@ -103,36 +118,42 @@ fun ItemList(category: String, onDrinkClick: (DrinkStruct) -> Unit) {
                         }
                     }
 
-                    LazyColumn(modifier = Modifier.padding(16.dp)) {
-                        items(items!!) { drink ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp)
-                                    .clickable { onDrinkClick(drink) }
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    drink.drinkImage.takeIf { it.isNotEmpty() }?.let {
-                                        val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size)
-                                        Image(
-                                            bitmap = bitmap.asImageBitmap(),
-                                            contentDescription = null,
-                                            modifier = Modifier
-                                                .size(64.dp)
-                                                .padding(8.dp),
-                                            contentScale = ContentScale.Crop
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(columnCount),
+                        modifier = Modifier.padding(16.dp),
+                        content = {
+                            items(items!!) { drink ->
+                                Card(
+                                    modifier = Modifier
+                                        .padding(8.dp)
+                                        .clickable { onDrinkClick(drink) },
+                                    shape = MaterialTheme.shapes.medium,
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.padding(8.dp)
+                                    ) {
+                                        if (drink.drinkImage.isNotEmpty()) {
+                                            val bitmap = BitmapFactory.decodeByteArray(drink.drinkImage, 0, drink.drinkImage.size)
+                                            Image(
+                                                bitmap = bitmap.asImageBitmap(),
+                                                contentDescription = drink.drinkName,
+                                                modifier = Modifier.size(120.dp),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        }
+                                        Text(
+                                            text = drink.drinkName,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(top = 8.dp)
                                         )
                                     }
-                                    Text(
-                                        text = drink.drinkName,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        modifier = Modifier.padding(8.dp),
-                                        fontWeight = FontWeight.Bold
-                                    )
                                 }
                             }
                         }
-                    }
+                    )
                 }
             }
 
