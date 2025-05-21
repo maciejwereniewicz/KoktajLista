@@ -15,10 +15,10 @@
       </SelectionState>
       <SelectionState runConfigName="MainActivity">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-05-21T20:26:45.513939900Z">
+        <DropdownSelection timestamp="2025-05-21T20:37:48.848922900Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\maati\.android\avd\Medium_Phone.avd" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\maati\.android\avd\Medium_Tablet.avd" />
             </handle>
           </Target>
         </DropdownSelection>

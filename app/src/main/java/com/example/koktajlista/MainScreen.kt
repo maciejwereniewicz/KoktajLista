@@ -66,7 +66,8 @@ fun MainScreen(
                 timeR = time,
                 isRunningR = isRunning,
                 timeStartR = timeStart,
-                storedTimeR = storedTime
+                storedTimeR = storedTime,
+
             ) { newTime, newIsRunning, newTimeStart, newStoredTime ->
                 time = newTime
                 isRunning = newIsRunning
