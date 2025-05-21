@@ -1,13 +1,19 @@
 package com.example.koktajlista
 
+import android.annotation.SuppressLint
+import android.content.Intent
 import android.graphics.BitmapFactory
 import android.media.Image
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +30,7 @@ import com.google.accompanist.flowlayout.FlowRow
 import com.google.accompanist.flowlayout.FlowColumn
 
 
+@SuppressLint("QueryPermissionsNeeded")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DrinkView(
@@ -35,6 +42,9 @@ fun DrinkView(
     var language by remember { mutableStateOf("EN") }
     var loadedFromCache by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    // Scaffold state do wyświetlania Snackbar
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(drinkId) {
         scope.launch {
@@ -69,7 +79,6 @@ fun DrinkView(
         "IT" to "🇮🇹"
     )
 
-    // Get configuration to detect orientation and screen width
     val configuration = LocalConfiguration.current
     val screenWidthDp = configuration.screenWidthDp
     val screenHeightDp = configuration.screenHeightDp
@@ -100,14 +109,32 @@ fun DrinkView(
     Scaffold(
         topBar = {
             TopAppBar(title = { Text(drink!!.drinkName) })
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    val message = drink!!.ingredients.joinToString(separator = ", ", prefix = "Składniki: ")
+                    val smsUri = Uri.parse("smsto:") // numer zostaw pusty, żeby użytkownik wpisał sam
+                    val intent = Intent(Intent.ACTION_SENDTO, smsUri).apply {
+                        putExtra("sms_body", message)
+                    }
+                    context.startActivity(intent)
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Send,
+                    contentDescription = "Wyślij SMS"
+                )
+            }
         }
+
     ) { paddingValues ->
-        // Decide layout based on screen width and orientation
+
         val modifier = Modifier.padding(paddingValues).fillMaxSize()
 
         when {
             screenWidthDp < 600 -> {
-                // Phone layout
                 DrinkViewPhone(
                     drink = drink!!,
                     language = language,
@@ -119,7 +146,6 @@ fun DrinkView(
             }
 
             screenHeightDp < 800 -> {
-                // Phone layout
                 DrinkViewPhoneVertical(
                     drink = drink!!,
                     language = language,
@@ -131,7 +157,6 @@ fun DrinkView(
             }
 
             else -> {
-                // Tablet or large screen layout
                 DrinkViewTablet(
                     drink = drink!!,
                     language = language,
@@ -144,6 +169,7 @@ fun DrinkView(
         }
     }
 }
+
 
 @Composable
 fun DrinkViewPhone(
