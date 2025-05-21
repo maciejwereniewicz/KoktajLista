@@ -1,17 +1,18 @@
 package com.example.koktajlista
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.platform.LocalContext
 import com.example.koktajlista.ui.theme.KoktajListaTheme
 import androidx.core.content.edit
+
+sealed class Screen {
+    data object CategoryList : Screen()
+    data class ItemList(val category: String) : Screen()
+    data class DrinkView(val drinkId: Int) : Screen()
+}
 
 class MainActivity : ComponentActivity() {
     var lastScreen: Screen? = null
@@ -61,88 +62,4 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
-
-@SuppressLint("ContextCastToActivity")
-@Composable
-fun MainScreen(
-    initialScreen: Screen,
-    timeR: Long,
-    isRunningR: Boolean,
-    timeStartR: Long,
-    storedTimeR: Long,
-    onScreenChange: (Screen) -> Unit
-) {
-    val context = LocalContext.current
-    val activity = context as? ComponentActivity
-
-    var currentScreen by remember { mutableStateOf(initialScreen) }
-    var category by remember { mutableStateOf((initialScreen as? Screen.ItemList)?.category) }
-    var drink by remember { mutableStateOf((initialScreen as? Screen.DrinkView)?.drinkId) }
-
-    var time by remember { mutableStateOf(timeR) }
-    var isRunning by remember { mutableStateOf(isRunningR) }
-    var timeStart by remember { mutableStateOf(timeStartR) }
-    var storedTime by remember { mutableStateOf(storedTimeR) }
-
-    LaunchedEffect(currentScreen) {
-        onScreenChange(currentScreen)
-    }
-
-    LaunchedEffect(time, isRunning, timeStart, storedTime) {
-        context.getSharedPreferences("CocktailPrefs", Context.MODE_PRIVATE).edit {
-            putLong("timeR", time)
-            putBoolean("isRunningR", isRunning)
-            putLong("timeStartR", timeStart)
-            putLong("storedTimeR", storedTime)
-        }
-    }
-
-    BackHandler {
-        currentScreen = when (currentScreen) {
-            is Screen.ItemList -> Screen.CategoryList
-            is Screen.DrinkView -> category?.let { Screen.ItemList(it) } ?: Screen.CategoryList
-            Screen.CategoryList -> {
-                activity?.finish()
-                return@BackHandler
-            }
-        }
-    }
-
-    ModalNavigationDrawer(
-        drawerContent = {
-            ShowTimer(
-                timeR = time,
-                isRunningR = isRunning,
-                timeStartR = timeStart,
-                storedTimeR = storedTime
-            ) { newTime, newIsRunning, newTimeStart, newStoredTime ->
-                time = newTime
-                isRunning = newIsRunning
-                timeStart = newTimeStart
-                storedTime = newStoredTime
-            }
-        }
-    ) {
-        when (val screen = currentScreen) {
-            is Screen.CategoryList -> CategoryList {
-                category = it
-                currentScreen = Screen.ItemList(it)
-            }
-
-            is Screen.ItemList -> ItemList(screen.category) {
-                drink = it.drinkId
-                category = screen.category
-                currentScreen = Screen.DrinkView(it.drinkId)
-            }
-
-            is Screen.DrinkView -> DrinkView(screen.drinkId)
-        }
-    }
-}
-
-sealed class Screen {
-    data object CategoryList : Screen()
-    data class ItemList(val category: String) : Screen()
-    data class DrinkView(val drinkId: Int) : Screen()
 }
