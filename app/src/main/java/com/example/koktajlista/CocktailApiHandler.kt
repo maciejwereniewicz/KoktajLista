@@ -169,16 +169,16 @@ class CocktailApiHandler {
                         ).filterValues { !it.isNullOrBlank() }
 
                         val drinkStruct = DrinkStruct(
-                            drinkName = drink.strDrink,
-                            drinkImage = imageBytes,
-                            drinkId = drink.idDrink,
-                            strImageSource = drink.strImageSource,
-                            strImageAttribution = drink.strImageAttribution,
-                            strCreativeCommonsConfirmed = drink.strCreativeCommonsConfirmed,
-                            dateModified = drink.dateModified,
-                            ingredients = ingredients,
-                            measure = measures,
-                            instructions = instructions
+                            drinkName = drink.strDrink?:"",
+                            drinkImage = imageBytes?: ByteArray(0),
+                            drinkId = drink.idDrink?: 0,
+                            strImageSource = drink.strImageSource?: "",
+                            strImageAttribution = drink.strImageAttribution?: "",
+                            strCreativeCommonsConfirmed = drink.strCreativeCommonsConfirmed?: "",
+                            dateModified = drink.dateModified?: "",
+                            ingredients = ingredients?: mutableListOf(),
+                            measure = measures?: mutableListOf(),
+                            instructions = instructions?: mapOf()
                         )
 
                         saveCache(cacheFile, Gson().toJson(drinkStruct))

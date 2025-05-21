@@ -8,6 +8,9 @@ import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -28,6 +31,9 @@ import kotlinx.coroutines.launch
 import java.io.File
 import com.google.accompanist.flowlayout.FlowRow
 import com.google.accompanist.flowlayout.FlowColumn
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.style.TextOverflow
 
 
 @SuppressLint("QueryPermissionsNeeded")
@@ -171,6 +177,7 @@ fun DrinkView(
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DrinkViewPhone(
     drink: DrinkStruct,
@@ -180,74 +187,104 @@ fun DrinkViewPhone(
     flagEmojiMap: Map<String, String>,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier
-            .padding(16.dp)
-            .fillMaxSize(),
-        verticalAlignment = Alignment.Top
-    ) {
-        // Language selector in vertical column on the left
-        Column(
-            modifier = Modifier.width(80.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            LanguageSelectorVertical(
-                availableLanguages = drink.instructions.keys.toList(),
-                selectedLanguage = language,
-                onLanguageChange = onLanguageChange,
-                flagEmojiMap = flagEmojiMap
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollState = rememberLazyListState()
+
+    Scaffold(
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            LargeTopAppBar(
+                title = {
+                    LanguageSelectorHorizontalWrapped(
+                        availableLanguages = drink.instructions.keys.toList(),
+                        selectedLanguage = language,
+                        onLanguageChange = onLanguageChange,
+                        flagEmojiMap = flagEmojiMap
+                    )
+                },
+                scrollBehavior = scrollBehavior,
             )
         }
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        // Main content scrollable column
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.Start
+    ) { paddingValues ->
+        LazyColumn(
+            state = scrollState,
+            contentPadding = paddingValues,
+            modifier = Modifier.fillMaxSize()
         ) {
-            if (loadedFromCache) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.secondaryContainer)
-                        .padding(8.dp)
-                ) {
-                    Text(
-                        text = "Załadowano dane z pamięci (offline)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
             if (drink.drinkImage.isNotEmpty()) {
                 val bitmap = BitmapFactory.decodeByteArray(drink.drinkImage, 0, drink.drinkImage.size)
-                androidx.compose.foundation.Image(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = "Image of ${drink.drinkName}",
-                    modifier = Modifier
-                        .height(200.dp)
-                        .fillMaxWidth(),
-                    contentScale = ContentScale.Crop
+                item {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "Image of ${drink.drinkName}",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(250.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = "Język instrukcji:",
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+            }
+
+            // Cache info
+            if (loadedFromCache) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.secondaryContainer)
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = "Załadowano dane z pamięci (offline)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+
+            // Instrukcje
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(text = "Instructions:", fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp))
+                Text(
+                    text = drink.instructions[language] ?: "No instructions provided",
+                    modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(text = "Instructions:", fontWeight = FontWeight.Bold)
-            Text(text = drink.instructions[language] ?: "No instructions provided")
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(text = "Ingredients:", fontWeight = FontWeight.Bold)
-            drink.ingredients.forEach { ingredient ->
-                Text(text = ingredient)
+            // Składniki
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(text = "Ingredients:", fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp))
             }
+
+            items(drink.ingredients) { ingredient ->
+                Text(
+                    text = ingredient,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+
+            // Wybór języka
+
+            item { Spacer(modifier = Modifier.height(24.dp)) }
         }
     }
 }
+
+
 
 @Composable
 fun DrinkViewPhoneVertical(

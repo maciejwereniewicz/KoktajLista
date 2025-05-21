@@ -4,29 +4,18 @@ import android.annotation.SuppressLint
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.Text
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 
+@OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("ContextCastToActivity")
 @Composable
 fun MainScreen(
@@ -68,14 +57,11 @@ fun MainScreen(
             is Screen.DrinkView -> category?.let { Screen.ItemList(it) } ?: Screen.CategoryList
             Screen.CategoryList -> Screen.MainPage
             Screen.MainPage -> {
-                // Example: exit app on back from MainPage
                 activity?.finish()
                 return@BackHandler
             }
         }
     }
-
-
 
     ModalNavigationDrawer(
         drawerContent = {
@@ -84,7 +70,6 @@ fun MainScreen(
                 isRunningR = isRunning,
                 timeStartR = timeStart,
                 storedTimeR = storedTime,
-
             ) { newTime, newIsRunning, newTimeStart, newStoredTime ->
                 time = newTime
                 isRunning = newIsRunning
@@ -93,23 +78,56 @@ fun MainScreen(
             }
         }
     ) {
-        when (val screen = currentScreen) {
-            is Screen.CategoryList -> CategoryList {
-                category = it
-                currentScreen = Screen.ItemList(it)
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = when (currentScreen) {
+                                is Screen.MainPage -> "Strona główna"
+                                is Screen.CategoryList -> "Kategorie"
+                                is Screen.ItemList -> "Lista koktajli"
+                                is Screen.DrinkView -> "Szczegóły koktajlu"
+                            },
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    },
+                    navigationIcon = {
+                        if (currentScreen != Screen.MainPage) {
+                            IconButton(onClick = {
+                                currentScreen = when (currentScreen) {
+                                    is Screen.ItemList -> Screen.CategoryList
+                                    is Screen.DrinkView -> category?.let { Screen.ItemList(it) } ?: Screen.CategoryList
+                                    is Screen.CategoryList -> Screen.MainPage
+                                    else -> Screen.MainPage
+                                }
+                            }) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Wstecz")
+                            }
+                        }
+                    }
+                )
             }
+        ) { paddingValues ->
+            Box(modifier = Modifier.padding(paddingValues)) {
+                when (val screen = currentScreen) {
+                    is Screen.CategoryList -> CategoryList {
+                        category = it
+                        currentScreen = Screen.ItemList(it)
+                    }
 
-            is Screen.ItemList -> ItemList(screen.category) {
-                drink = it.drinkId
-                category = screen.category
-                currentScreen = Screen.DrinkView(it.drinkId)
+                    is Screen.ItemList -> ItemList(screen.category) {
+                        drink = it.drinkId
+                        category = screen.category
+                        currentScreen = Screen.DrinkView(it.drinkId)
+                    }
+
+                    is Screen.DrinkView -> DrinkView(screen.drinkId)
+                    Screen.MainPage -> WelcomeScreen(onContinue = {
+                        currentScreen = Screen.CategoryList
+                    })
+                }
             }
-
-            is Screen.DrinkView -> DrinkView(screen.drinkId)
-            Screen.MainPage -> WelcomeScreen(onContinue = {
-                currentScreen = Screen.CategoryList
-            })
-
         }
     }
 }
