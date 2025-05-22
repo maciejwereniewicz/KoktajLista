@@ -66,6 +66,12 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+    override fun onDestroy() {
+        super.onDestroy()
+        val prefs = getSharedPreferences("CocktailPrefs", Context.MODE_PRIVATE)
+        prefs.edit {
+            putBoolean("skipSplash", true)
+        }
+    }
+
 }
-
-

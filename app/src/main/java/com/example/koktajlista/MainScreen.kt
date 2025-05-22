@@ -35,9 +35,13 @@ fun MainScreen(
     storedTimeR: Long,
     onScreenChange: (Screen) -> Unit
 ) {
-    var splashFinished by remember { mutableStateOf(false) }
-
     val context = LocalContext.current
+    val prefs = context.getSharedPreferences("CocktailPrefs", Context.MODE_PRIVATE)
+    val skipSplash = prefs.getBoolean("skipSplash", false)
+
+    var splashFinished by remember { mutableStateOf(skipSplash) }
+
+
     val activity = context as? ComponentActivity
 
     var currentScreen by remember { mutableStateOf(initialScreen) }
@@ -52,7 +56,12 @@ fun MainScreen(
     if (!splashFinished) {
         CombinedSplashScreen {
             splashFinished = true
+            // Clear skip flag so splash appears only once
+            prefs.edit {
+                putBoolean("skipSplash", false)
+            }
         }
+
         return
     }
 
