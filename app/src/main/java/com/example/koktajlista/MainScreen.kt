@@ -102,7 +102,7 @@ fun MainScreen(
                     title = {
                         Text(
                             text = when (currentScreen) {
-                                is Screen.MainPage -> "Strona główna"
+                                is Screen.MainPage -> "KoktajLista"
                                 is Screen.CategoryList -> "Kategorie"
                                 is Screen.ItemList -> "Lista koktajli"
                                 is Screen.DrinkView -> "Szczegóły koktajlu"
@@ -163,13 +163,6 @@ fun WelcomeScreen(onContinue: () -> Unit) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Witamy w KoktajLista!",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
                 text = "Aplikacja służy do przeglądania przepisów na różnorodne koktajle i napoje. " +

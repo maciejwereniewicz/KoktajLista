@@ -7,44 +7,57 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlin.math.abs
-import kotlin.math.pow
+
+@Composable
+fun FloatToDp(px: Float): Dp {
+    val density = LocalDensity.current
+    return with(density) { px.toDp() }
+}
+
+@Composable
+fun DpToPx(dpValue: Dp): Float {
+    val density = LocalDensity.current
+    return with(density) { dpValue.toPx() }
+}
 
 @Composable
 fun FreeCansAnimation(
     cansCount: Int = 5,
     modifier: Modifier = Modifier
+        .padding(20.dp)
         .fillMaxSize()
+        .border(2.dp, Color.Red)
         .background(MaterialTheme.colorScheme.surfaceVariant)
+
 ) {
     val context = LocalContext.current
     val sensorManager = remember { context.getSystemService(Context.SENSOR_SERVICE) as SensorManager }
@@ -52,7 +65,6 @@ fun FreeCansAnimation(
 
     val density = LocalContext.current.resources.displayMetrics.density
     val canSizeDp = 48.dp
-    val canSizePx = (canSizeDp.value * density).toInt()
 
     val physics = remember {
         PhysicsSettings(
@@ -95,54 +107,81 @@ fun FreeCansAnimation(
         onDispose { sensorManager.unregisterListener(listener) }
     }
 
-    LaunchedEffect(Unit) {
-        var previousTime = System.currentTimeMillis()
-        while (true) {
-            val currentTime = System.currentTimeMillis()
-            val deltaTime = (currentTime - previousTime).coerceAtLeast(1L)
-            val deltaTimeSeconds = deltaTime / 1000f
-            previousTime = currentTime
+    BoxWithConstraints(modifier = modifier) {
+                val minX = 0.dp
+                val minY = 0.dp
+                val maxX = FloatToDp(constraints.maxWidth * 1.0f ) - 50.dp
+                val maxY = FloatToDp(constraints.minHeight * 1.0f ) - 50.dp
 
-            cans.forEach { can ->
-                can.vx += gravityX * physics.gravityScale * deltaTimeSeconds
-                can.vy += gravityY * physics.gravityScale * deltaTimeSeconds
+                val fminX = DpToPx(minX)
+                val fminY = DpToPx(minY)
+                val fmaxX = DpToPx(maxX)
+                val fmaxY = DpToPx(maxY)
 
-                // Ograniczenie prędkości
-                can.vx = can.vx.coerceIn(-physics.maxSpeed, physics.maxSpeed)
-                can.vy = can.vy.coerceIn(-physics.maxSpeed, physics.maxSpeed)
+                LaunchedEffect(Unit) {
+                    var previousTime = System.currentTimeMillis()
 
-                // Pozycja bez żadnych kolizji
-                val newX = can.x.value + can.vx * deltaTimeSeconds
-                val newY = can.y.value + can.vy * deltaTimeSeconds
+                    while (true) {
+                        val currentTime = System.currentTimeMillis()
+                        val deltaTime = (currentTime - previousTime).coerceAtLeast(1L)
+                        val deltaTimeSeconds = deltaTime / 1000f
+                        previousTime = currentTime
 
-                can.vx *= physics.damping
-                can.vy *= physics.damping
+                        cans.forEach { can ->
+                            can.vx += gravityX * physics.gravityScale * deltaTimeSeconds
+                            can.vy += gravityY * physics.gravityScale * deltaTimeSeconds
 
-                can.x.snapTo(newX)
-                can.y.snapTo(newY)
+                            can.vx = can.vx.coerceIn(-physics.maxSpeed, physics.maxSpeed)
+                            can.vy = can.vy.coerceIn(-physics.maxSpeed, physics.maxSpeed)
+
+                            var newX = can.x.value + can.vx * deltaTimeSeconds
+                            var newY = can.y.value + can.vy * deltaTimeSeconds
+
+                            if (newX < fminX) {
+                                newX = fminX
+                                can.vx = -can.vx
+                            } else if (newX > fmaxX) {
+                                newX = fmaxX
+                                can.vx = -can.vx
+                            }
+
+                            if (newY < fminY) {
+                                newY = fminY
+                                can.vy = -can.vy
+                            } else if (newY > fmaxY) {
+                                newY = fmaxY
+                                can.vy = -can.vy
+                            }
+
+                            can.vx *= physics.damping
+                            can.vy *= physics.damping
+
+                            can.x.snapTo(newX)
+                            can.y.snapTo(newY)
+                        }
+
+                        delay(16L)
+                    }
+                }
+
+                // Wyświetlenie puszek
+                cans.forEach { can ->
+                    Box(
+                        modifier = Modifier
+                            .offset(
+                                x = FloatToDp(can.x.value),
+                                y = FloatToDp(can.y.value)
+                            )
+                            .size(canSizeDp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.Gray),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("\uD83C\uDF7E", fontSize = 28.sp)
+                    }
+                }
             }
 
-            delay(16L)
-        }
-    }
-
-    Box(modifier = modifier) {
-        cans.forEach { can ->
-            Box(
-                modifier = Modifier
-                    .offset(
-                        x = (can.x.value / density).dp,
-                        y = (can.y.value / density).dp
-                    )
-                    .size(canSizeDp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color.Gray),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("\uD83C\uDF7E", fontSize = 28.sp)
-            }
-        }
-    }
 }
 
 data class PhysicsSettings(
