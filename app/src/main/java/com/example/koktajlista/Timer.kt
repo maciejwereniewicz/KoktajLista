@@ -61,7 +61,7 @@ fun CountdownTimer(
 
     LaunchedEffect(isRunning) {
         while (isRunning) {
-            delay(1000)
+            delay(16)
             time -= 1000
             if (time <= 0L) {
                 time = 0L
@@ -122,7 +122,7 @@ fun StopwatchTimer(
 
     LaunchedEffect(isRunning) {
         while (isRunning) {
-            delay(1000)
+            delay(16)
             time = System.currentTimeMillis() - timeStart + storedTime
             onUpdate(time, isRunning, timeStart, storedTime)
         }

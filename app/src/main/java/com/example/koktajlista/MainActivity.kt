@@ -30,7 +30,7 @@ class MainActivity : ComponentActivity() {
             "ItemList" -> if (category != null) Screen.ItemList(category) else null
             "DrinkView" -> if (drinkId != -1) Screen.DrinkView(drinkId) else null
             "CategoryList" -> Screen.CategoryList
-            else -> Screen.MainPage // Default to main page instead of CategoryList
+            else -> Screen.MainPage
         }
 
 

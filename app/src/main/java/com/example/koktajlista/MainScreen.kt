@@ -1,9 +1,14 @@
 package com.example.koktajlista
 
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -11,9 +16,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 import androidx.core.content.edit
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("ContextCastToActivity")
@@ -26,6 +35,8 @@ fun MainScreen(
     storedTimeR: Long,
     onScreenChange: (Screen) -> Unit
 ) {
+    var splashFinished by remember { mutableStateOf(false) }
+
     val context = LocalContext.current
     val activity = context as? ComponentActivity
 
@@ -37,6 +48,13 @@ fun MainScreen(
     var isRunning by remember { mutableStateOf(isRunningR) }
     var timeStart by remember { mutableStateOf(timeStartR) }
     var storedTime by remember { mutableStateOf(storedTimeR) }
+
+    if (!splashFinished) {
+        CombinedSplashScreen {
+            splashFinished = true
+        }
+        return
+    }
 
     LaunchedEffect(currentScreen) {
         onScreenChange(currentScreen)
@@ -97,7 +115,7 @@ fun MainScreen(
                             IconButton(onClick = {
                                 currentScreen = when (currentScreen) {
                                     is Screen.ItemList -> Screen.CategoryList
-                                    is Screen.DrinkView -> category?.let { Screen.ItemList(it) } ?: Screen.CategoryList
+                                    is Screen.DrinkView -> category?.let { Screen.ItemList(it) } ?: Screen.MainPage
                                     is Screen.CategoryList -> Screen.MainPage
                                     else -> Screen.MainPage
                                 }
@@ -175,3 +193,103 @@ fun WelcomeScreen(onContinue: () -> Unit) {
         }
     }
 }
+
+@Composable
+fun CombinedSplashScreen(onFinish: () -> Unit) {
+    var splashFinished by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        delay(2000)
+        splashFinished = true
+        onFinish()
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        SplashScreen(onSplashFinished = {}) // Nie kończy, tylko animuje
+        AnimatedSplashScreen(onFinish = {}) // Nie kończy, tylko animuje
+    }
+}
+
+
+@Composable
+fun SplashScreen(onSplashFinished: () -> Unit) {
+    var scale by remember { mutableStateOf(0f) }
+
+    LaunchedEffect(Unit) {
+        scale = 1f
+        kotlinx.coroutines.delay(2000L)
+        onSplashFinished()
+    }
+
+    val animatedScale by animateFloatAsState(
+        targetValue = scale,
+        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+        label = "scaleAnim"
+    )
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.primaryContainer
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(80.dp)) // <-- przesunięcie w górę
+            Text(
+                text = "\uD83C\uDF79",
+                style = MaterialTheme.typography.displayLarge,
+                modifier = Modifier.scale(animatedScale)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "KoktajLista",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+    }
+}
+
+
+@Composable
+fun AnimatedSplashScreen(onFinish: () -> Unit) {
+    val context = LocalContext.current
+    val logoRef = remember {
+        android.widget.TextView(context).apply {
+            text = "🍹"
+            textSize = 96f
+            textAlignment = android.view.View.TEXT_ALIGNMENT_CENTER
+            alpha = 0f
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val scaleX = ObjectAnimator.ofFloat(logoRef, "scaleX", 0f, 2f, 1f)
+        val scaleY = ObjectAnimator.ofFloat(logoRef, "scaleY", 0f, 2f, 1f)
+        val alpha = ObjectAnimator.ofFloat(logoRef, "alpha", 0f, 1f)
+
+        AnimatorSet().apply {
+            playTogether(scaleX, scaleY, alpha)
+            duration = 1500
+            start()
+        }
+
+        delay(2000)
+        onFinish()
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 200.dp) // <-- przesunięcie w dół
+            .zIndex(100f),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        AndroidView(factory = { logoRef })
+    }
+}
+
