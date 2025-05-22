@@ -190,6 +190,8 @@ fun WelcomeScreen(onContinue: () -> Unit) {
             ) {
                 Text(text = "Zaczynamy! \uD83C\uDF7A")
             }
+
+            FreeCansAnimation()
         }
     }
 }
@@ -205,7 +207,6 @@ fun CombinedSplashScreen(onFinish: () -> Unit) {
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        SplashScreen(onSplashFinished = {}) // Nie kończy, tylko animuje
         AnimatedSplashScreen(onFinish = {}) // Nie kończy, tylko animuje
     }
 }
@@ -282,14 +283,31 @@ fun AnimatedSplashScreen(onFinish: () -> Unit) {
         onFinish()
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = 200.dp) // <-- przesunięcie w dół
-            .zIndex(100f),
-        contentAlignment = Alignment.TopCenter
-    ) {
-        AndroidView(factory = { logoRef })
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.primaryContainer
+    )
+    {
+        Box(
+            modifier = Modifier
+                .fillMaxSize(),
+            contentAlignment = Alignment.Center // Wyśrodkuj zawartość Boxa
+        ) {
+            // Animacja (emoji) 50dp nad środkiem
+            AndroidView(
+                factory = { logoRef },
+                modifier = Modifier.offset(y = (-75).dp) // Przesunięcie w górę
+            )
+            // Tekst "KoktajLista" 50dp pod środkiem
+            Column(modifier = Modifier.offset(y = 75.dp)) { // Przesunięcie w dół
+                Text(
+                    text = "KoktajLista",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+    }
+
     }
 }
 
