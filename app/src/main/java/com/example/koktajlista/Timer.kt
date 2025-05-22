@@ -1,5 +1,11 @@
 package com.example.koktajlista
 
+import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.media.audiofx.BassBoost
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,6 +25,11 @@ import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.app.NotificationCompat
+import android.provider.Settings
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 
 
 @Composable
@@ -102,18 +113,18 @@ fun CountdownTimer(
     var minutes by remember { mutableStateOf(0) }
     var seconds by remember { mutableStateOf(0) }
 
+    val context = LocalContext.current
+
     LaunchedEffect(isCountDown) {
         while (isCountDown && time > 0) {
             delay(16)
             time = timeStart - System.currentTimeMillis() + storedTime
             onUpdate(time, false, isCountDown, timeStart, storedTime)
         }
-        if (time < 0)
-        {
+        if (time <= 0) {
+            isCountDown = false
             time = 0
-        }
-        else {
-
+            storedTime = 0
         }
         time = storedTime
     }
@@ -125,11 +136,29 @@ fun CountdownTimer(
             timeStart = System.currentTimeMillis()
             isCountDown = true
             onUpdate(time, false, isCountDown, timeStart, storedTime)
+
+            val triggerTime = System.currentTimeMillis() + storedTime
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(context as Activity, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
+                }
+            }
+
+            if (canScheduleExactAlarms(context)) {
+                setAlarm(context, triggerTime)
+            } else {
+                // pokaż dialog z prośbą o ręczne włączenie
+                val intent = Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                context.startActivity(intent)
+            }
+
         },
         onStop = {
             storedTime = storedTime - System.currentTimeMillis() + timeStart
             isCountDown = false
             onUpdate(time, false, isCountDown, timeStart, storedTime)
+            cancelAlarm(context)
         },
         onReset = {
             isCountDown = false
@@ -146,6 +175,7 @@ fun CountdownTimer(
                 onSecondsChange = { seconds = it }
             )
         }
+
     )
 }
 
@@ -314,9 +344,6 @@ fun ScrollBoxSelector(
         }
     }
 }
-
-
-
 
 
 
