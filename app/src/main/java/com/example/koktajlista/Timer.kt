@@ -1,111 +1,154 @@
 package com.example.koktajlista
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.HourglassBottom
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+
 
 @Composable
 fun ShowTimer(
     timeR: Long,
     isRunningR: Boolean,
+    isCountdownR: Boolean,
     timeStartR: Long,
     storedTimeR: Long,
-    onUpdate: (Long, Boolean, Long, Long) -> Unit
+    onUpdate: (Long, Boolean, Boolean, Long, Long) -> Unit
 ) {
-    var isCountdown by remember { mutableStateOf(false) }
+    var isCountdown by remember { mutableStateOf(isCountdownR) }
 
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+            .padding(16.dp)
     ) {
-        if (isCountdown) {
-            CountdownTimer(
-                timeR = timeR,
-                isRunningR = isRunningR,
-                onUpdate = onUpdate
-            )
-        } else {
-            StopwatchTimer(
-                timeR = timeR,
-                isRunningR = isRunningR,
-                timeStartR = timeStartR,
-                storedTimeR = storedTimeR,
-                onUpdate = onUpdate
-            )
-        }
+        // 🔁 Przełącznik jako przyciski
 
-        Text("Tryb odliczania")
-        Spacer(modifier = Modifier.width(8.dp))
-        Switch(
-            checked = isCountdown,
-            onCheckedChange = { isCountdown = it }
-        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(4.dp)
+        ) {
+            if (isCountdown) {
+                CountdownTimer(
+                    timeR = timeR,
+                    isCountDownR = isCountdownR,
+                    timeStartR = timeStartR,
+                    storedTimeR = storedTimeR,
+                    onUpdate = onUpdate
+                )
+            } else {
+                StopwatchTimer(
+                    timeR = timeR,
+                    isRunningR = isRunningR,
+                    timeStartR = timeStartR,
+                    storedTimeR = storedTimeR,
+                    onUpdate = onUpdate
+                )
+            }
+        }
+        Row(
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Button(
+                onClick = { isCountdown = false },
+                enabled = isCountdown && !isCountdownR,
+            ) {
+                Icon(Icons.Filled.Timer, contentDescription = "Stoper")
+            }
+            Button(
+                onClick = { isCountdown = true },
+                enabled = !isCountdown && !isRunningR,
+            ) {
+                Icon(Icons.Filled.HourglassBottom, contentDescription = "Odliczanie")
+            }
+
+        }
     }
 }
+
 
 @Composable
 fun CountdownTimer(
     timeR: Long,
-    isRunningR: Boolean,
-    onUpdate: (Long, Boolean, Long, Long) -> Unit
+    isCountDownR: Boolean,
+    timeStartR: Long,
+    storedTimeR: Long,
+    onUpdate: (Long, Boolean, Boolean, Long, Long) -> Unit
 ) {
     var time by remember { mutableStateOf(timeR) }
-    var isRunning by remember { mutableStateOf(isRunningR) }
+    var isCountDown by remember { mutableStateOf(isCountDownR) }
+    var timeStart by remember { mutableStateOf(timeStartR) }
+    var storedTime by remember { mutableStateOf(storedTimeR) }
+
+
     var minutes by remember { mutableStateOf(0) }
     var seconds by remember { mutableStateOf(0) }
 
-    LaunchedEffect(isRunning) {
-        while (isRunning) {
+    LaunchedEffect(isCountDown) {
+        while (isCountDown && time > 0) {
             delay(16)
-            time -= 1000
-            if (time <= 0L) {
-                time = 0L
-                isRunning = false
-            }
-            onUpdate(time, isRunning, 0L, 0L)
+            time = timeStart - System.currentTimeMillis() + storedTime
+            onUpdate(time, false, isCountDown, timeStart, storedTime)
         }
+        if (time < 0)
+        {
+            time = 0
+        }
+        else {
+
+        }
+        time = storedTime
     }
 
     TimerCard(
         label = "Odliczanie",
         time = time,
         onStart = {
-            time = (minutes * 60 + seconds) * 1000L
-            isRunning = true
-            onUpdate(time, isRunning, 0L, 0L)
+            timeStart = System.currentTimeMillis()
+            isCountDown = true
+            onUpdate(time, false, isCountDown, timeStart, storedTime)
         },
         onStop = {
-            isRunning = false
-            onUpdate(time, isRunning, 0L, 0L)
+            storedTime = storedTime - System.currentTimeMillis() + timeStart
+            isCountDown = false
+            onUpdate(time, false, isCountDown, timeStart, storedTime)
         },
         onReset = {
-            time = (minutes * 60 + seconds) * 1000L
-            isRunning = false
-            onUpdate(time, isRunning, 0L, 0L)
+            isCountDown = false
+            storedTime = (minutes*60+seconds)*1000.toLong()
+            time = storedTime
+            onUpdate(time, false, isCountDown, timeStart, storedTime)
         },
-        isRunning = isRunning,
+        isRunning = isCountDown,
         countdownInputs = {
-            OutlinedTextField(
-                value = minutes.toString(),
-                onValueChange = { minutes = it.toIntOrNull() ?: 0 },
-                label = { Text("Minuty") },
-                modifier = Modifier.width(100.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            OutlinedTextField(
-                value = seconds.toString(),
-                onValueChange = { seconds = it.toIntOrNull() ?: 0 },
-                label = { Text("Sekundy") },
-                modifier = Modifier.width(100.dp)
+            CountdownInputs(
+                selectedMinutes = minutes,
+                selectedSeconds = seconds,
+                onMinutesChange = { minutes = it },
+                onSecondsChange = { seconds = it }
             )
         }
     )
 }
+
 
 @Composable
 fun StopwatchTimer(
@@ -113,7 +156,7 @@ fun StopwatchTimer(
     isRunningR: Boolean,
     timeStartR: Long,
     storedTimeR: Long,
-    onUpdate: (Long, Boolean, Long, Long) -> Unit
+    onUpdate: (Long, Boolean, Boolean, Long, Long) -> Unit
 ) {
     var time by remember { mutableStateOf(timeR) }
     var isRunning by remember { mutableStateOf(isRunningR) }
@@ -124,8 +167,9 @@ fun StopwatchTimer(
         while (isRunning) {
             delay(16)
             time = System.currentTimeMillis() - timeStart + storedTime
-            onUpdate(time, isRunning, timeStart, storedTime)
+            onUpdate(time, isRunning, false, timeStart, storedTime)
         }
+        time = storedTime
     }
 
     TimerCard(
@@ -134,19 +178,20 @@ fun StopwatchTimer(
         onStart = {
             timeStart = System.currentTimeMillis()
             isRunning = true
-            onUpdate(time, isRunning, timeStart, storedTime)
+            storedTime = time
+            onUpdate(time, isRunning, false, timeStart, storedTime)
         },
         onStop = {
             storedTime += System.currentTimeMillis() - timeStart
             isRunning = false
-            onUpdate(time, isRunning, timeStart, storedTime)
+            onUpdate(time, isRunning, false, timeStart, storedTime)
         },
         onReset = {
             time = 0L
             isRunning = false
             timeStart = 0L
             storedTime = 0L
-            onUpdate(time, isRunning, timeStart, storedTime)
+            onUpdate(time, isRunning, false, timeStart, storedTime)
         },
         isRunning = isRunning
     )
@@ -177,9 +222,16 @@ fun TimerCard(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Button(onClick = onStart, enabled = !isRunning) { Text("Start") }
-                Button(onClick = onStop, enabled = isRunning) { Text("Stop") }
-                Button(onClick = onReset) { Text("Reset") }
+                Button(onClick = onStart, enabled = !isRunning) {
+                    Icon(Icons.Filled.PlayArrow, contentDescription = "Start")
+                }
+                Button(onClick = onStop, enabled = isRunning) {
+                    Icon(Icons.Filled.Stop, contentDescription = "Stop")
+                }
+                Button(onClick = onReset, enabled = !isRunning) {
+                    Icon(Icons.Filled.RestartAlt, contentDescription = "Reset")
+                }
+
             }
 
             countdownInputs?.let {
@@ -200,13 +252,13 @@ fun CountdownInputs(
         horizontalArrangement = Arrangement.SpaceEvenly,
         modifier = Modifier.fillMaxWidth()
     ) {
-        DropdownSelector(
+        ScrollBoxSelector(
             label = "Minuty",
             selected = selectedMinutes,
             onSelectedChange = onMinutesChange
         )
         Spacer(modifier = Modifier.width(16.dp))
-        DropdownSelector(
+        ScrollBoxSelector(
             label = "Sekundy",
             selected = selectedSeconds,
             onSelectedChange = onSecondsChange
@@ -214,43 +266,58 @@ fun CountdownInputs(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DropdownSelector(
+fun ScrollBoxSelector(
     label: String,
     selected: Int,
-    onSelectedChange: (Int) -> Unit
+    onSelectedChange: (Int) -> Unit,
+    range: IntRange = 0..60
 ) {
-    var expanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded }
+    Column(
+        modifier = Modifier
+            .padding(8.dp)
     ) {
-        TextField(
-            readOnly = true,
-            value = selected.toString(),
-            onValueChange = {},
-            label = { Text(label) },
-            modifier = Modifier.menuAnchor(),
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(bottom = 8.dp)
         )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
+
+        Box(
+            modifier = Modifier
+                .width(80.dp)
+                .height(150.dp)
+                .background(MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.medium)
+                .verticalScroll(rememberScrollState())
         ) {
-            (1..60).forEach { value ->
-                DropdownMenuItem(
-                    text = { Text(value.toString()) },
-                    onClick = {
-                        onSelectedChange(value)
-                        expanded = false
+            Column {
+                range.forEach { value ->
+                    val isSelected = value == selected
+                    val backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent
+                    val textColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelectedChange(value) }
+                            .background(backgroundColor)
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = value.toString().padStart(2, '0'),
+                            style = MaterialTheme.typography.bodyLarge.copy(color = textColor)
+                        )
                     }
-                )
+                }
             }
         }
     }
 }
+
+
+
+
 
 
 

@@ -35,6 +35,7 @@ class MainActivity : ComponentActivity() {
 
         val timeStartR = sharedPreferences.getLong("timeStartR", 0L)
         val isRunningR = sharedPreferences.getBoolean("isRunningR", false)
+        val isCountDownR = sharedPreferences.getBoolean("isCountDownR", false)
         val timeR = sharedPreferences.getLong("timeR", 0L)
         val storedTimeR = sharedPreferences.getLong("storedTimeR", 0L)
 
@@ -45,6 +46,7 @@ class MainActivity : ComponentActivity() {
                     initialScreen = lastScreen ?: Screen.MainPage,
                     timeR = timeR,
                     isRunningR = isRunningR,
+                    isCountdownR = isCountDownR,
                     timeStartR = timeStartR,
                     storedTimeR = storedTimeR
                 ) { screen ->

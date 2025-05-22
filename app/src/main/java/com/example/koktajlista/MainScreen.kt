@@ -34,6 +34,7 @@ fun MainScreen(
     initialScreen: Screen,
     timeR: Long,
     isRunningR: Boolean,
+    isCountdownR: Boolean,
     timeStartR: Long,
     storedTimeR: Long,
     onScreenChange: (Screen) -> Unit
@@ -53,6 +54,7 @@ fun MainScreen(
 
     var time by remember { mutableStateOf(timeR) }
     var isRunning by remember { mutableStateOf(isRunningR) }
+    var isCountdown by remember { mutableStateOf(isCountdownR) }
     var timeStart by remember { mutableStateOf(timeStartR) }
     var storedTime by remember { mutableStateOf(storedTimeR) }
 
@@ -74,10 +76,11 @@ fun MainScreen(
         onScreenChange(currentScreen)
     }
 
-    LaunchedEffect(time, isRunning, timeStart, storedTime) {
+    LaunchedEffect(time, isRunning, isCountdown, timeStart, storedTime) {
         context.getSharedPreferences("CocktailPrefs", Context.MODE_PRIVATE).edit {
             putLong("timeR", time)
             putBoolean("isRunningR", isRunning)
+            putBoolean("isCountDownR", isCountdown)
             putLong("timeStartR", timeStart)
             putLong("storedTimeR", storedTime)
         }
@@ -100,11 +103,13 @@ fun MainScreen(
             ShowTimer(
                 timeR = time,
                 isRunningR = isRunning,
+                isCountdownR = isCountdown,
                 timeStartR = timeStart,
                 storedTimeR = storedTime,
-            ) { newTime, newIsRunning, newTimeStart, newStoredTime ->
+            ) { newTime, newIsRunning, newIsCountdown, newTimeStart, newStoredTime ->
                 time = newTime
                 isRunning = newIsRunning
+                isCountdown = newIsCountdown
                 timeStart = newTimeStart
                 storedTime = newStoredTime
             }
