@@ -11,7 +11,7 @@ import androidx.core.content.edit
 sealed class Screen {
     object MainPage : Screen()
     object CategoryList : Screen()
-    data class ItemList(val category: String) : Screen()
+    data class ItemList(val category: String, val bName: Boolean) : Screen()
     data class DrinkView(val drinkId: Int) : Screen()
 }
 
@@ -27,7 +27,7 @@ class MainActivity : ComponentActivity() {
         val drinkId = sharedPreferences.getInt("lastDrinkId", -1)
 
         lastScreen = when (screenType) {
-            "ItemList" -> if (category != null) Screen.ItemList(category) else null
+            "ItemList" -> if (category != null) Screen.ItemList(category, false) else null
             "DrinkView" -> if (drinkId != -1) Screen.DrinkView(drinkId) else null
             "CategoryList" -> Screen.CategoryList
             else -> Screen.MainPage

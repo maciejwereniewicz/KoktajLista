@@ -12,15 +12,8 @@ interface CocktailApi {
     @GET("list.php?c=list")
     fun fetchCategories(): Call<CategoryResponse>
 
-    @GET("list.php?g=list")
-    fun fetchGlasses(): Call<GlassResponse>
-
-    @GET("list.php?i=list")
-    fun fetchIngredients(): Call<IngredientResponse>
-
-    @GET("list.php?a=list")
-    fun fetchAlcoholics(): Call<AlcoholicResponse>
-
+    @GET("search.php")
+    fun fetchDrinksByName(@QueryMap options: Map<String, String>): Call<DrinkResponse>
 
     @GET("filter.php")
     fun fetchDrinksByType(@QueryMap options: Map<String, String>): Call<DrinkResponse>

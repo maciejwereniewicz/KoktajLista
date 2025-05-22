@@ -12,6 +12,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,9 +22,10 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.zIndex
 import androidx.core.content.edit
 import kotlinx.coroutines.delay
+import androidx.compose.material3.TextFieldDefaults
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("ContextCastToActivity")
@@ -53,6 +56,8 @@ fun MainScreen(
     var timeStart by remember { mutableStateOf(timeStartR) }
     var storedTime by remember { mutableStateOf(storedTimeR) }
 
+    var searchedByName by remember { mutableStateOf(false) }
+
     if (!splashFinished) {
         CombinedSplashScreen {
             splashFinished = true
@@ -81,7 +86,7 @@ fun MainScreen(
     BackHandler {
         currentScreen = when (currentScreen) {
             is Screen.ItemList -> Screen.CategoryList
-            is Screen.DrinkView -> category?.let { Screen.ItemList(it) } ?: Screen.CategoryList
+            is Screen.DrinkView -> category?.let { Screen.ItemList(it, false) } ?: Screen.CategoryList
             Screen.CategoryList -> Screen.MainPage
             Screen.MainPage -> {
                 activity?.finish()
@@ -107,24 +112,41 @@ fun MainScreen(
     ) {
         Scaffold(
             topBar = {
+                var searchMode by remember { mutableStateOf(false) }
+                var searchQuery by remember { mutableStateOf("") }
+
                 TopAppBar(
                     title = {
-                        Text(
-                            text = when (currentScreen) {
-                                is Screen.MainPage -> "KoktajLista"
-                                is Screen.CategoryList -> "Kategorie"
-                                is Screen.ItemList -> "Lista koktajli"
-                                is Screen.DrinkView -> "Szczegóły koktajlu"
-                            },
-                            style = MaterialTheme.typography.titleLarge
-                        )
+                        if (searchMode) {
+                            TextField(
+                                value = searchQuery,
+                                onValueChange = {
+                                    searchQuery = it
+                                    currentScreen = Screen.ItemList(it, bName=false) // <- wyszukiwanie po nazwie
+                                },
+                                placeholder = { Text("Szukaj...") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = TextFieldDefaults.colors()
+                            )
+                        } else {
+                            Text(
+                                text = when (currentScreen) {
+                                    is Screen.MainPage -> "KoktajLista"
+                                    is Screen.CategoryList -> "Kategorie"
+                                    is Screen.ItemList -> "Lista koktajli"
+                                    is Screen.DrinkView -> "Szczegóły koktajlu"
+                                },
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                        }
                     },
                     navigationIcon = {
-                        if (currentScreen != Screen.MainPage) {
+                        if (!searchMode && currentScreen != Screen.MainPage) {
                             IconButton(onClick = {
                                 currentScreen = when (currentScreen) {
                                     is Screen.ItemList -> Screen.CategoryList
-                                    is Screen.DrinkView -> category?.let { Screen.ItemList(it) } ?: Screen.MainPage
+                                    is Screen.DrinkView -> category?.let { Screen.ItemList(it, true) } ?: Screen.MainPage
                                     is Screen.CategoryList -> Screen.MainPage
                                     else -> Screen.MainPage
                                 }
@@ -132,18 +154,38 @@ fun MainScreen(
                                 Icon(Icons.Default.ArrowBack, contentDescription = "Wstecz")
                             }
                         }
+                    },
+                    actions = {
+                        if (searchMode) {
+                            IconButton(onClick = {
+                                searchMode = false
+                                searchQuery = ""
+                                currentScreen = Screen.CategoryList // Powrót do listy kategorii
+                            }) {
+                                Icon(Icons.Default.Close, contentDescription = "Zamknij wyszukiwanie")
+                            }
+                        } else {
+                            IconButton(onClick = {
+                                searchMode = true
+                            }) {
+                                Icon(Icons.Default.Search, contentDescription = "Szukaj")
+                            }
+                        }
                     }
                 )
+
+
+
             }
         ) { paddingValues ->
             Box(modifier = Modifier.padding(paddingValues)) {
                 when (val screen = currentScreen) {
                     is Screen.CategoryList -> CategoryList {
                         category = it
-                        currentScreen = Screen.ItemList(it)
+                        currentScreen = Screen.ItemList(it, false)
                     }
 
-                    is Screen.ItemList -> ItemList(screen.category) {
+                    is Screen.ItemList -> ItemList(screen.category, searchedByName) {
                         drink = it.drinkId
                         category = screen.category
                         currentScreen = Screen.DrinkView(it.drinkId)

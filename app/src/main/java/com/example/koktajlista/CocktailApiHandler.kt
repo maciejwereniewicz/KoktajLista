@@ -72,6 +72,52 @@ class CocktailApiHandler {
         }
     }
 
+    suspend fun getDrinksByName(type: String, value: String, context: Context): List<DrinkStruct> {
+        val key = "drinks_${type}_$value"
+        val cacheFile = getCacheFile(context, key)
+        if (isCacheValid(cacheFile)) {
+            val cached = loadCache(cacheFile)
+            if (cached != null) {
+                val listType: Type = object : TypeToken<List<DrinkStruct>>() {}.type
+                return Gson().fromJson(cached, listType)
+            }
+        }
+
+        return withContext(Dispatchers.IO) {
+            val call = ApiClient.cocktailApi.fetchDrinksByName(mapOf(type to value))
+            try {
+                val response = call.execute()
+                if (response.isSuccessful) {
+                    val drinks = response.body()?.drinks?.map {
+                        DrinkStruct(
+                            drinkName = it.strDrink,
+                            drinkId = it.idDrink,
+                            drinkImage = URL(it.strDrinkThumb).readBytes(),
+                            strImageSource = "",
+                            strImageAttribution = "",
+                            strCreativeCommonsConfirmed = "",
+                            dateModified = "",
+                            ingredients = mutableListOf(),
+                            measure = mutableListOf(),
+                            instructions = mapOf()
+                        )
+                    } ?: emptyList()
+                    saveCache(cacheFile, Gson().toJson(drinks))
+                    drinks
+                } else {
+                    emptyList()
+                }
+            } catch (e: UnknownHostException) {
+                Log.e("CocktailApiHandler", "No internet connection: ${e.message}")
+                emptyList()
+            } catch (e: Exception) {
+                Log.e("CocktailApiHandler", "API error: ${e.message}")
+                emptyList()
+            }
+        }
+    }
+
+
     suspend fun getDrinksByType(type: String, value: String, context: Context): List<DrinkStruct> {
         val key = "drinks_${type}_$value"
         val cacheFile = getCacheFile(context, key)

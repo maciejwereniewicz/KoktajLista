@@ -44,7 +44,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ItemList(category: String, onDrinkClick: (DrinkStruct) -> Unit) {
+fun ItemList(category: String, bName: Boolean, onDrinkClick: (DrinkStruct) -> Unit) {
     val context = LocalContext.current
     var items by remember { mutableStateOf<List<DrinkStruct>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -59,31 +59,59 @@ fun ItemList(category: String, onDrinkClick: (DrinkStruct) -> Unit) {
         else -> 4
     }
 
-    LaunchedEffect(category) {
-        scope.launch {
-            val handler = CocktailApiHandler()
-            val key = "drinks_c_$category"
-            val cacheFile = File(context.filesDir, "$key.json")
-            val hadCache = cacheFile.exists()
 
-            val result = handler.getDrinksByType("c", category, context)
-            items = result
+        LaunchedEffect(category) {
+            if (bName) {
+                scope.launch {
+                    val handler = CocktailApiHandler()
+                    val key = "drinks_c_$category"
+                    val cacheFile = File(context.filesDir, "$key.json")
+                    val hadCache = cacheFile.exists()
 
-            if (result.isEmpty()) {
-                if (hadCache) {
-                    error = "Brak internetu – pokazano dane z pamięci (mogą być nieaktualne)."
-                    loadedFromCache = true
-                } else {
-                    error = "Brak internetu i brak zapisanych danych."
-                    loadedFromCache = false
+                    val result = handler.getDrinksByType("c", category, context)
+                    items = result
+
+                    if (result.isEmpty()) {
+                        if (hadCache) {
+                            error =
+                                "Brak internetu – pokazano dane z pamięci (mogą być nieaktualne)."
+                            loadedFromCache = true
+                        } else {
+                            error = "Brak internetu i brak zapisanych danych."
+                            loadedFromCache = false
+                        }
+                    } else {
+                        error = null
+                        loadedFromCache = !handler.isCacheValid(cacheFile)
+                    }
                 }
-            } else {
-                error = null
-                loadedFromCache = !handler.isCacheValid(cacheFile)
+            }
+            else {
+                scope.launch {
+                    val handler = CocktailApiHandler()
+                    val key = "drinks_s_$category"
+                    val cacheFile = File(context.filesDir, "$key.json")
+                    val hadCache = cacheFile.exists()
+
+                    val result = handler.getDrinksByName("s", category, context)
+                    items = result
+
+                    if (result.isEmpty()) {
+                        if (hadCache) {
+                            error =
+                                "Brak internetu – pokazano dane z pamięci (mogą być nieaktualne)."
+                            loadedFromCache = true
+                        } else {
+                            error = "Brak internetu i brak zapisanych danych."
+                            loadedFromCache = false
+                        }
+                    } else {
+                        error = null
+                        loadedFromCache = !handler.isCacheValid(cacheFile)
+                    }
+                }
             }
         }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(title = { Text(category) })
