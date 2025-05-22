@@ -1,6 +1,7 @@
 package com.example.koktajlista
 
 import android.content.Context
+import android.content.res.Configuration
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -11,8 +12,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -64,6 +63,7 @@ fun FreeCansAnimation(
     val accelerometer = remember { sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY) }
 
     val density = LocalContext.current.resources.displayMetrics.density
+    val orientation = LocalContext.current.resources.configuration.orientation
     val canSizeDp = 48.dp
 
     val physics = remember {
@@ -98,6 +98,13 @@ fun FreeCansAnimation(
             override fun onSensorChanged(event: SensorEvent) {
                 gravityX = -event.values[0]
                 gravityY = event.values[1]
+                if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                    // zamień osie
+                    val temp = gravityX
+                    gravityX = gravityY
+                    gravityY = -temp
+                }
+
             }
 
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
@@ -108,79 +115,86 @@ fun FreeCansAnimation(
     }
 
     BoxWithConstraints(modifier = modifier) {
-                val minX = 0.dp
-                val minY = 0.dp
-                val maxX = FloatToDp(constraints.maxWidth * 1.0f ) - 50.dp
-                val maxY = FloatToDp(constraints.minHeight * 1.0f ) - 50.dp
+        val minX = 0.dp
+        val minY = 0.dp
 
-                val fminX = DpToPx(minX)
-                val fminY = DpToPx(minY)
-                val fmaxX = DpToPx(maxX)
-                val fmaxY = DpToPx(maxY)
+        val fminX = DpToPx(minX)
+        val fminY = DpToPx(minY)
+        val density = LocalDensity.current
+        LaunchedEffect(constraints) {
+            var previousTime = System.currentTimeMillis()
 
-                LaunchedEffect(Unit) {
-                    var previousTime = System.currentTimeMillis()
+            while (true) {
+                val currentTime = System.currentTimeMillis()
+                val deltaTime = (currentTime - previousTime).coerceAtLeast(1L)
+                val deltaTimeSeconds = deltaTime / 1000f
+                previousTime = currentTime
 
-                    while (true) {
-                        val currentTime = System.currentTimeMillis()
-                        val deltaTime = (currentTime - previousTime).coerceAtLeast(1L)
-                        val deltaTimeSeconds = deltaTime / 1000f
-                        previousTime = currentTime
 
-                        cans.forEach { can ->
-                            can.vx += gravityX * physics.gravityScale * deltaTimeSeconds
-                            can.vy += gravityY * physics.gravityScale * deltaTimeSeconds
+                val fmaxX = with(density) { (constraints.maxWidth.toDp() - 50.dp).toPx() }
+                val fmaxY = with(density) { (constraints.minHeight.toDp() - 50.dp).toPx() }
 
-                            can.vx = can.vx.coerceIn(-physics.maxSpeed, physics.maxSpeed)
-                            can.vy = can.vy.coerceIn(-physics.maxSpeed, physics.maxSpeed)
+                val fminX = with(density) { 0.dp.toPx() }
+                val fminY = with(density) { 0.dp.toPx() }
 
-                            var newX = can.x.value + can.vx * deltaTimeSeconds
-                            var newY = can.y.value + can.vy * deltaTimeSeconds
 
-                            if (newX < fminX) {
-                                newX = fminX
-                                can.vx = -can.vx
-                            } else if (newX > fmaxX) {
-                                newX = fmaxX
-                                can.vx = -can.vx
-                            }
-
-                            if (newY < fminY) {
-                                newY = fminY
-                                can.vy = -can.vy
-                            } else if (newY > fmaxY) {
-                                newY = fmaxY
-                                can.vy = -can.vy
-                            }
-
-                            can.vx *= physics.damping
-                            can.vy *= physics.damping
-
-                            can.x.snapTo(newX)
-                            can.y.snapTo(newY)
-                        }
-
-                        delay(16L)
-                    }
-                }
-
-                // Wyświetlenie puszek
                 cans.forEach { can ->
-                    Box(
-                        modifier = Modifier
-                            .offset(
-                                x = FloatToDp(can.x.value),
-                                y = FloatToDp(can.y.value)
-                            )
-                            .size(canSizeDp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.Gray),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("\uD83C\uDF7E", fontSize = 28.sp)
+                    can.vx += gravityX * physics.gravityScale * deltaTimeSeconds
+                    can.vy += gravityY * physics.gravityScale * deltaTimeSeconds
+
+                    can.vx = can.vx.coerceIn(-physics.maxSpeed, physics.maxSpeed)
+                    can.vy = can.vy.coerceIn(-physics.maxSpeed, physics.maxSpeed)
+
+                    var newX = can.x.value + can.vx * deltaTimeSeconds
+                    var newY = can.y.value + can.vy * deltaTimeSeconds
+
+                    if (newX < fminX) {
+                        newX = fminX
+                        can.vx = -can.vx
                     }
+                    if (newX > fmaxX) {
+                        newX = fmaxX
+                        can.vx = -can.vx
+                    }
+
+                    if (newY < fminY) {
+                        newY = fminY
+                        can.vy = -can.vy
+                    }
+                    if (newY > fmaxY) {
+                        newY = fmaxY
+                        can.vy = -can.vy
+                    }
+
+                    can.vx *= physics.damping
+                    can.vy *= physics.damping
+
+                    can.x.snapTo(newX)
+                    can.y.snapTo(newY)
                 }
+
+                delay(16L)
             }
+        }
+
+        // Drawing cans stays unchanged
+        cans.forEach { can ->
+            Box(
+                modifier = Modifier
+                    .offset(
+                        x = FloatToDp(can.x.value),
+                        y = FloatToDp(can.y.value)
+                    )
+                    .size(canSizeDp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.Gray),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("\uD83C\uDF7E", fontSize = 28.sp)
+            }
+        }
+    }
+
 
 }
 
