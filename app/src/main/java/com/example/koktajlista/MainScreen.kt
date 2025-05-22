@@ -159,8 +159,6 @@ fun MainScreen(
                         if (searchMode) {
                             IconButton(onClick = {
                                 searchMode = false
-                                searchQuery = ""
-                                currentScreen = Screen.CategoryList // Powrót do listy kategorii
                             }) {
                                 Icon(Icons.Default.Close, contentDescription = "Zamknij wyszukiwanie")
                             }
