@@ -33,9 +33,6 @@ class MainActivity : ComponentActivity() {
             else -> Screen.MainPage
         }
 
-
-
-
         val timeStartR = sharedPreferences.getLong("timeStartR", 0L)
         val isRunningR = sharedPreferences.getBoolean("isRunningR", false)
         val timeR = sharedPreferences.getLong("timeR", 0L)
